@@ -12,7 +12,7 @@ RED - 0
 BLUE - 1
 YELLOW - 2
 GREEN - 3
-PURPLE - 4
+MAGENTA - 4
 ORANGE - 5
 
  */
@@ -26,10 +26,13 @@ public class maze3Script : MonoBehaviour
 
 	public KMSelectable[] btns;
 	public GameObject[] pins;
+	public GameObject[] checkLights;
 	public GameObject cube;
 	public Material[] colors;
 	public Material lit;
-	public Material until;
+	public Material unlit;
+	public GameObject[] orientators;
+	public GameObject rotator;
 
 	int[][] strtPosPool = { 
 							new int[] {0, 1, 2, 3, 5, 6, 7, 8},
@@ -43,9 +46,12 @@ public class maze3Script : MonoBehaviour
 	int node;
 	int xRot, yRot, zRot;
 
+	int[] solution;
+	int currentPress = 0;
+
 	static int moduleIdCounter = 1;
     int moduleId;
-    private bool moduleSolved;
+    private bool moduleSolved = false;
 
 	Dictionary<Vector3, KeyValuePair<int, int>> rotationMap = new Dictionary<Vector3, KeyValuePair<int, int>>();
 	Dictionary<int, MapNode> maze = new Dictionary<int, MapNode>();
@@ -54,11 +60,11 @@ public class maze3Script : MonoBehaviour
 	{
 		moduleId = moduleIdCounter++;
 		
-		// btns[0].OnInteract += delegate () { HandleUp(); return false; };
-		// btns[1].OnInteract += delegate () { HandleRight(); return false; };
-		// btns[2].OnInteract += delegate () { HandleDown(); return false; };
-		// btns[3].OnInteract += delegate () { HandleLeft(); return false; };
-		// btns[4].OnInteract += delegate () { HandleSubmit(); return false; };
+		btns[0].OnInteract += delegate () { HandleUp(); return false; };
+		btns[1].OnInteract += delegate () { HandleRight(); return false; };
+		btns[2].OnInteract += delegate () { HandleDown(); return false; };
+		btns[3].OnInteract += delegate () { HandleLeft(); return false; };
+		btns[4].OnInteract += delegate () { HandleSubmit(); return false; };
 
 	}
 
@@ -69,6 +75,8 @@ public class maze3Script : MonoBehaviour
 		PrepRotationMap();
 		PrepMaze();
 		ResizeLights();
+
+		CalcSolution();
 
 		RandomizeStartingPos();
 		SetColorLights();
@@ -170,12 +178,12 @@ public class maze3Script : MonoBehaviour
 		maze.Add(14, new MapNode(14, new int[] {11, -1, 13, -1}, new bool[]{false, false, false, true}));
 		maze.Add(15, new MapNode(15, new int[] {20, -1, -1, -1}, new bool[]{false, true, true, false}));
 		maze.Add(16, new MapNode(16, new int[] {-1, 1, -1, 17}, new bool[]{false, true, false, false}));
-		maze.Add(17, new MapNode(17, new int[] {-1, 16, 2, -1}, new bool[]{false, true, false, true}));
+		maze.Add(17, new MapNode(17, new int[] {-1, 2, 16, -1}, new bool[]{false, true, false, true}));
 	
 		maze.Add(18, new MapNode(18, new int[] {-1, 21, -1, 19}, new bool[]{true, false, true, false}));
 		maze.Add(19, new MapNode(19, new int[] {-1, -1, 18, 20}, new bool[]{true, false, false, false}));
 		maze.Add(20, new MapNode(20, new int[] {15, -1, 19, 0}, new bool[]{true, false, false, true}));
-		maze.Add(21, new MapNode(21, new int[] {18, 24, 48, 23}, new bool[]{false, false, true, false}));
+		maze.Add(21, new MapNode(21, new int[] {18, 24, 48, 22}, new bool[]{false, false, true, false}));
 		maze.Add(22, new MapNode(22, new int[] {-1, -1, 21, -1}, new bool[]{false, false, false, false}));
 		maze.Add(23, new MapNode(23, new int[] {-1, 26, -1, 3}, new bool[]{false, false, false, true}));
 		maze.Add(24, new MapNode(24, new int[] {21, -1, 45, -1}, new bool[]{false, true, true, false}));
@@ -220,6 +228,12 @@ public class maze3Script : MonoBehaviour
 			float scalar = transform.lossyScale.x;
     		pins[i].transform.GetChild(0).GetComponentsInChildren<Light>()[0].range *= scalar;
 		}
+
+		for(int i = 0; i < checkLights.Length; i++)
+		{
+			float scalar = transform.lossyScale.x;
+    		checkLights[i].transform.GetChild(0).GetComponentsInChildren<Light>()[0].range *= scalar;
+		}
 	}
 
 	void RandomizeStartingPos()
@@ -257,12 +271,12 @@ public class maze3Script : MonoBehaviour
 			case 3:
 				return "Green";
 			case 4:
-				return "Purple";
+				return "Magenta";
 			case 5:
 				return "Orange";
 		}
 
-		return "";
+		return "Uncolored";
 	}
 
 
@@ -298,5 +312,491 @@ public class maze3Script : MonoBehaviour
 		}
 
 		return -1;
+	}
+
+	void HandleUp()
+	{
+		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+		btns[0].AddInteractionPunch(.5f);
+		if(moduleSolved)
+			return;
+
+		int color = node / 9;
+		int orientation = GetOrientation(orientators[color].transform.up);
+		
+		MapNode n;
+		maze.TryGetValue(node, out n);
+
+		switch(orientation)
+		{
+			case 0:
+			{
+				if(n.path[MapNode.up] != -1)
+				{	
+					ChangePos(MapNode.up, MapNode.up);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Up button, rotated 0 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 90:
+			{
+				if(n.path[MapNode.left] != -1)
+				{	
+					ChangePos(MapNode.left, MapNode.up);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Up button, rotated 90 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 180:
+			{
+				if(n.path[MapNode.down] != -1)
+				{	
+					ChangePos(MapNode.down, MapNode.up);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Up button, rotated 180 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 270:
+			{
+				if(n.path[MapNode.right] != -1)
+				{	
+					ChangePos(MapNode.right, MapNode.up);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Up button, rotated 270 degrees).", moduleId, node);
+				}
+				break;
+			}
+		}
+	}
+
+	void HandleDown()
+	{
+		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+		btns[2].AddInteractionPunch(.5f);
+		if(moduleSolved)
+			return;
+
+		int color = node / 9;
+		int orientation = GetOrientation(orientators[color].transform.up);
+
+		MapNode n;
+		maze.TryGetValue(node, out n);
+
+		switch(orientation)
+		{
+			case 0:
+			{
+				if(n.path[MapNode.down] != -1)
+				{	
+					ChangePos(MapNode.down, MapNode.down);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Down button, rotated 0 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 90:
+			{
+				if(n.path[MapNode.right] != -1)
+				{	
+					ChangePos(MapNode.right, MapNode.down);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Down button, rotated 90 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 180:
+			{
+				if(n.path[MapNode.up] != -1)
+				{	
+					ChangePos(MapNode.up, MapNode.down);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Down button, rotated 180 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 270:
+			{
+				if(n.path[MapNode.left] != -1)
+				{	
+					ChangePos(MapNode.left, MapNode.down);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Down button, rotated 270 degrees).", moduleId, node);
+				}
+				break;
+			}
+		}
+	}
+
+	void HandleLeft()
+	{
+		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+		btns[3].AddInteractionPunch(.5f);
+		if(moduleSolved)
+			return;
+
+		int color = node / 9;
+		int orientation = GetOrientation(orientators[color].transform.up);
+
+		MapNode n;
+		maze.TryGetValue(node, out n);
+
+		switch(orientation)
+		{
+			case 0:
+			{
+				if(n.path[MapNode.left] != -1)
+				{	
+					ChangePos(MapNode.left, MapNode.left);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Left button, rotated 0 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 90:
+			{
+				if(n.path[MapNode.down] != -1)
+				{	
+					ChangePos(MapNode.down, MapNode.left);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Left button, rotated 90 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 180:
+			{
+				if(n.path[MapNode.right] != -1)
+				{	
+					ChangePos(MapNode.right, MapNode.left);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Left button, rotated 180 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 270:
+			{
+				if(n.path[MapNode.up] != -1)
+				{	
+					ChangePos(MapNode.up, MapNode.left);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Left button, rotated 270 degrees).", moduleId, node);
+				}
+				break;
+			}
+		}
+	}
+
+	void HandleRight()
+	{
+		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+		btns[1].AddInteractionPunch(.5f);
+		if(moduleSolved)
+			return;
+
+		int color = node / 9;
+		int orientation = GetOrientation(orientators[color].transform.up);
+
+		MapNode n;
+		maze.TryGetValue(node, out n);
+
+		switch(orientation)
+		{
+			case 0:
+			{
+				if(n.path[MapNode.right] != -1)
+				{	
+					ChangePos(MapNode.right, MapNode.right);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Right button, rotated 0 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 90:
+			{
+				if(n.path[MapNode.up] != -1)
+				{	
+					ChangePos(MapNode.up, MapNode.right);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Right button, rotated 90 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 180:
+			{
+				if(n.path[MapNode.left] != -1)
+				{	
+					ChangePos(MapNode.left, MapNode.right);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Right button, rotated 180 degrees).", moduleId, node);
+				}
+				break;
+			}
+			case 270:
+			{
+				if(n.path[MapNode.down] != -1)
+				{	
+					ChangePos(MapNode.down,MapNode.right);
+				}
+				else
+				{
+					GetComponent<KMBombModule>().HandleStrike();
+					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Right button, rotated 270 degrees).", moduleId, node);
+				}
+				break;
+			}
+		}
+	}
+
+	void ChangePos(int dir, int arrow)
+	{
+		int color = node / 9;
+
+		MapNode n;
+		maze.TryGetValue(node, out n);
+
+		if(node == color * 9 + 4)
+		{
+			pins[node].GetComponentInChildren<Renderer>().material = colors[color];
+			pins[node].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(color);
+		}
+		else
+		{
+			pins[node].GetComponentInChildren<Renderer>().material = unlit;
+			pins[node].transform.GetChild(0).gameObject.SetActive(false);
+		}
+
+		node = n.path[dir];
+
+		pins[node].GetComponentInChildren<Renderer>().material = lit;
+		pins[node].transform.GetChild(0).gameObject.SetActive(true);
+		pins[node].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(-1);
+
+		if(n.turn[dir])
+		{
+			switch(arrow)
+			{
+				case MapNode.up:
+				{
+					StartCoroutine(RotateCube(-1, 0));
+					break;
+				}
+				case MapNode.down:
+				{
+					StartCoroutine(RotateCube(1, 0)); 
+					break;
+				}
+				case MapNode.left:
+				{
+					StartCoroutine(RotateCube(0, 1));
+					break;
+				}
+				case MapNode.right:
+				{
+					StartCoroutine(RotateCube(0, -1));
+					break;
+				}
+			}
+
+			color = node / 9;
+			Debug.LogFormat("[Maze^3 #{0}] Now at {1} face.", moduleId, GetColor(color));
+		}
+		
+		Debug.LogFormat("[Maze^3 #{0}] Now at node {1}.", moduleId, node);
+
+	}
+
+	void HandleSubmit()
+	{
+		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+		btns[1].AddInteractionPunch(.5f);
+		if(moduleSolved)
+			return;
+
+		if(node == solution[currentPress])
+		{
+			Debug.LogFormat("[Maze^3 #{0}] Successfuly submited {1} position.", moduleId, GetColor(node / 9));
+
+			Audio.PlaySoundAtTransform("bip", transform);
+
+			checkLights[currentPress].GetComponentInChildren<Renderer>().material = colors[node / 9];
+			checkLights[currentPress].transform.GetChild(0).gameObject.SetActive(true);
+			checkLights[currentPress].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(node / 9);
+		
+			currentPress++;
+
+			if(currentPress > 2)
+			{
+				Debug.LogFormat("[Maze^3 #{0}] Module solved!", moduleId);
+
+				moduleSolved = true;
+
+				ShowColoredLights();
+			}
+		}
+		else
+		{
+			GetComponent<KMBombModule>().HandleStrike();
+
+			if(node == (node / 9) * 9 + 4)
+				Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to submit on {1} position (Expected {2}).", moduleId, GetColor(node / 9), GetColor(solution[currentPress] / 9));
+			else
+				Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to submit on an uncolored position (Expected {1}).", moduleId, GetColor(solution[currentPress] / 9));
+		}
+	}
+
+	Color GetColorVector(int color)
+	{
+		switch(color)
+		{
+			case 0:
+				return new Color(1.0f, 0, 0, 1.0f);
+			case 1:
+				return new Color(0.2f, 0, 1.0f, 1.0f);
+			case 2:
+				return new Color(0.863f, 1.0f, 0, 1.0f);
+			case 3:
+				return new Color(0.255f, 0.847f, 0.106f, 1.0f);
+			case 4:
+				return new Color(0.8235f, 0.278f, 0.278f, 1.0f);
+			case 5:
+				return new Color(1.0f, 0.557f, 0, 1.0f);
+		}
+
+		return new Color(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
+	int GetOrientation(Vector3 orientator)
+	{
+		if(orientator.x > 0.9f)
+			return 90;
+
+		if(orientator.x < -0.9f)
+			return 270;	
+
+		if(orientator.z > 0.9f)
+			return 0;
+
+		if(orientator.z < -0.9f)
+			return 180;
+
+		return -1;
+	}
+
+	void CalcSolution()
+	{
+		solution = new int[3];
+
+		int batteries = bomb.GetBatteryCount();
+		int indicators = bomb.GetIndicators().Count(); 
+		int ports = bomb.GetPortCount();
+
+		if(batteries <= 1)
+		{
+			solution[0] = 40;
+		}
+		else if (batteries >= 5)
+		{
+			solution[0] = 13;
+		}
+		else
+		{
+			solution[0] = 49;
+		}
+
+		if(indicators <= 1)
+		{
+			solution[1] = 4;
+		}
+		else if (indicators >= 5)
+		{
+			solution[1] = 31;
+		}
+		else
+		{
+			solution[1] = 22;
+		}
+
+		if(ports <= 1)
+		{
+			solution[2] = 13;
+		}
+		else if (ports >= 5)
+		{
+			solution[2] = 49;
+		}
+		else
+		{
+			solution[2] = 40;
+		}
+
+		Debug.LogFormat("[Maze^3 #{0}] Correct color sequence is: {1}, {2}, {3}.", moduleId, GetColor(solution[0]/9), GetColor(solution[1]/9), GetColor(solution[2]/9));
+
+	}
+
+	void ShowColoredLights()
+	{
+		for(int i = 0; i < pins.Length; i++)
+		{
+			pins[i].GetComponentInChildren<Renderer>().material = colors[i / 9];
+			pins[i].transform.GetChild(0).gameObject.SetActive(true);
+			pins[i].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(i / 9);
+		}
+	}
+
+	IEnumerator RotateCube(int xVal, int zVal)
+	{
+		for(int i = 0; i < 18; i++)
+		{
+			cube.transform.RotateAround(rotator.transform.position, rotator.transform.right, 5f * xVal);
+			cube.transform.RotateAround(rotator.transform.position, rotator.transform.forward, 5f * zVal);
+			yield return new WaitForSeconds(0.005f);
+		}
 	}
 }

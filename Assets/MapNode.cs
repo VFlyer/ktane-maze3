@@ -2,10 +2,10 @@ using System;
 
 class MapNode {
     
-    public static int up = 0;
-    public static int down = 1;
-    public static int left = 2;
-    public static int right = 3;
+    public const int up = 0;
+    public const int down = 1;
+    public const int left = 2;
+    public const int right = 3;
 
     public int id;
 
