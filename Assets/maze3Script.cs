@@ -322,7 +322,7 @@ public class maze3Script : MonoBehaviour
 			return;
 
 		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up);
+		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
 		
 		MapNode n;
 		maze.TryGetValue(node, out n);
@@ -392,7 +392,7 @@ public class maze3Script : MonoBehaviour
 			return;
 
 		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up);
+		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
 
 		MapNode n;
 		maze.TryGetValue(node, out n);
@@ -460,9 +460,9 @@ public class maze3Script : MonoBehaviour
 		btns[3].AddInteractionPunch(.5f);
 		if(moduleSolved)
 			return;
-
+		
 		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up);
+		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
 
 		MapNode n;
 		maze.TryGetValue(node, out n);
@@ -532,8 +532,8 @@ public class maze3Script : MonoBehaviour
 			return;
 
 		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up);
-
+		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
+		
 		MapNode n;
 		maze.TryGetValue(node, out n);
 
