@@ -242,7 +242,7 @@ public class maze3Script : MonoBehaviour
 		yRot = rnd.Next() % 4 * 90;	
 		zRot = rnd.Next() % 4 * 90;
 
-		cube.transform.eulerAngles = new Vector3(xRot, yRot, zRot); 
+		cube.transform.localEulerAngles = new Vector3(xRot, yRot, zRot); 
 
 		KeyValuePair<int, int> p;
 		rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
