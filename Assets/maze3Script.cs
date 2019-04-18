@@ -45,6 +45,7 @@ public class maze3Script : MonoBehaviour
 
 	int node;
 	int xRot, yRot, zRot;
+	int orientation;
 
 	int[] solution;
 	int currentPress = 0;
@@ -247,6 +248,8 @@ public class maze3Script : MonoBehaviour
 		KeyValuePair<int, int> p;
 		rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
 
+		orientation = p.Value;
+
 		Debug.LogFormat("[Maze^3 #{0}] Starting face: {1} (rotated {2} degrees)", moduleId, GetColor(p.Key), p.Value);
 
 		int[] pool = strtPosPool[p.Key];
@@ -320,9 +323,6 @@ public class maze3Script : MonoBehaviour
 		btns[0].AddInteractionPunch(.5f);
 		if(moduleSolved)
 			return;
-
-		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
 		
 		MapNode n;
 		maze.TryGetValue(node, out n);
@@ -391,9 +391,6 @@ public class maze3Script : MonoBehaviour
 		if(moduleSolved)
 			return;
 
-		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
-
 		MapNode n;
 		maze.TryGetValue(node, out n);
 
@@ -461,9 +458,6 @@ public class maze3Script : MonoBehaviour
 		if(moduleSolved)
 			return;
 		
-		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
-
 		MapNode n;
 		maze.TryGetValue(node, out n);
 
@@ -531,9 +525,6 @@ public class maze3Script : MonoBehaviour
 		if(moduleSolved)
 			return;
 
-		int color = node / 9;
-		int orientation = GetOrientation(orientators[color].transform.up - rotator.transform.up);
-		
 		MapNode n;
 		maze.TryGetValue(node, out n);
 
@@ -644,6 +635,68 @@ public class maze3Script : MonoBehaviour
 				}
 			}
 
+			switch(dir)
+			{
+				case MapNode.up:
+				{
+					if(color == 2)
+					{
+						orientation = (orientation + 270) % 360;
+					}
+					else if(color == 3)
+					{
+						orientation = (orientation + 90) % 360;
+					}
+					break;
+				}
+				case MapNode.down:
+				{
+					if(color == 2)
+					{
+						orientation = (orientation + 90) % 360;
+					}
+					else if(color == 3)
+					{
+						orientation = (orientation + 270) % 360;
+					}					
+					break;
+				}
+				case MapNode.left:
+				{
+					if(color == 4)
+					{
+						orientation = (orientation + 270) % 360;
+					}
+					else if(color == 2 || color == 5)
+					{
+						orientation = (orientation + 180) % 360;
+					}
+					else if(color == 1)
+					{
+						orientation = (orientation + 90) % 360;
+					}
+					break;
+				}
+				case MapNode.right:
+				{
+					if(color == 1)
+					{
+						orientation = (orientation + 270) % 360;
+					}
+					else if(color == 3 || color == 5)
+					{
+						orientation = (orientation + 180) % 360;
+					}
+					else if(color == 4)
+					{
+						orientation = (orientation + 90) % 360;
+					}
+					break;
+				}
+			}
+
+			Debug.Log(orientation);
+
 			color = node / 9;
 			Debug.LogFormat("[Maze^3 #{0}] Now at {1} face.", moduleId, GetColor(color));
 		}
@@ -674,7 +727,7 @@ public class maze3Script : MonoBehaviour
 			if(currentPress > 2)
 			{
 				Debug.LogFormat("[Maze^3 #{0}] Module solved!", moduleId);
-
+				GetComponent<KMBombModule>().HandlePass();
 				moduleSolved = true;
 
 				ShowColoredLights();
