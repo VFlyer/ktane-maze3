@@ -716,8 +716,6 @@ public class maze3Script : MonoBehaviour
 		{
 			Debug.LogFormat("[Maze^3 #{0}] Successfuly submited {1} position.", moduleId, GetColor(node / 9));
 
-			Audio.PlaySoundAtTransform("bip", transform);
-
 			checkLights[currentPress].GetComponentInChildren<Renderer>().material = colors[node / 9];
 			checkLights[currentPress].transform.GetChild(0).gameObject.SetActive(true);
 			checkLights[currentPress].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(node / 9);
@@ -730,8 +728,10 @@ public class maze3Script : MonoBehaviour
 				GetComponent<KMBombModule>().HandlePass();
 				moduleSolved = true;
 
-				ShowColoredLights();
+				StartCoroutine(ShowColoredLights());
 			}
+			else
+				Audio.PlaySoundAtTransform("bip", transform);
 		}
 		else
 		{
@@ -833,13 +833,55 @@ public class maze3Script : MonoBehaviour
 
 	}
 
-	void ShowColoredLights()
+	IEnumerator ShowColoredLights()
 	{
+		for(int j = 0; j < 2; j++)
+		{
+			Audio.PlaySoundAtTransform("bip", transform);
+
+			for(int i = 0; i < pins.Length; i++)
+			{
+				if(i % 2 == 0)
+				{
+					pins[i].GetComponentInChildren<Renderer>().material = colors[i / 9];
+					pins[i].transform.GetChild(0).gameObject.SetActive(true);
+					pins[i].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(i / 9);
+				}
+				else
+				{
+					pins[i].GetComponentInChildren<Renderer>().material = unlit;
+					pins[i].transform.GetChild(0).gameObject.SetActive(false);
+				}
+			}
+
+			yield return new WaitForSeconds(0.5f);
+
+			for(int i = 0; i < pins.Length; i++)
+			{
+				if(i % 2 != 0)
+				{
+					pins[i].GetComponentInChildren<Renderer>().material = colors[i / 9];
+					pins[i].transform.GetChild(0).gameObject.SetActive(true);
+					pins[i].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(i / 9);
+				}
+				else
+				{
+					pins[i].GetComponentInChildren<Renderer>().material = unlit;
+					pins[i].transform.GetChild(0).gameObject.SetActive(false);
+				}
+			}
+
+			yield return new WaitForSeconds(0.5f);
+		}
+
+		Audio.PlaySoundAtTransform("bip", transform);
+
 		for(int i = 0; i < pins.Length; i++)
 		{
 			pins[i].GetComponentInChildren<Renderer>().material = colors[i / 9];
 			pins[i].transform.GetChild(0).gameObject.SetActive(true);
 			pins[i].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(i / 9);
+			
 		}
 	}
 
