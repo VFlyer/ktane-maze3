@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using KModkit;
 
@@ -71,7 +72,21 @@ public class maze3Script : MonoBehaviour
 
 	void Start () 
 	{
-		Debug.LogFormat("[Maze^3 #{0}] Node mapping for logging purposes:\n                       __________\n                       | 09 10 11 |\n                       | 12 13 14 |\n                       | 15 16 17 |\n        _________ ________ ________\n       | 18 19 20 | 00 01 02 | 27 28 29 |\n       | 21 22 23 | 03 04 05 | 30 31 32 |\n       | 24 25 26 | 06 07 08 | 33 34 35 |\n                        ________\n                       | 36 37 38 |\n                       | 39 40 41 |\n                       | 42 43 44 |\n                       __________\n                       | 45 46 47 |\n                       | 48 49 50 |\n                       | 51 52 53 |\n                       __________", moduleId);		
+		 var debugMap = new StringBuilder();
+        debugMap.AppendLine(@"   │   │   │  9│ 10│ 11│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 12│ 13│ 14│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 15│ 16│ 17│   │   │   ");
+        debugMap.AppendLine(@" 18│ 19│ 20│  0│  1│  2│ 27│ 28│ 29");
+        debugMap.AppendLine(@" 21│ 22│ 23│  3│  4│  5│ 30│ 31│ 32");
+        debugMap.AppendLine(@" 24│ 25│ 26│  6│  7│  8│ 33│ 34│ 35");
+        debugMap.AppendLine(@"   │   │   │ 36│ 37│ 38│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 39│ 40│ 41│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 42│ 43│ 44│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 45│ 46│ 47│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 46│ 49│ 50│   │   │   ");
+        debugMap.AppendLine(@"   │   │   │ 51│ 52│ 53│   │   │   ");
+
+		Debug.LogFormat("[Maze^3 #{0}] Node mapping for logging purposes:\n {1}", moduleId, debugMap.ToString());
 
 		PrepRotationMap();
 		PrepMaze();
@@ -216,7 +231,7 @@ public class maze3Script : MonoBehaviour
 		maze.Add(47, new MapNode(47, new int[] {44, -1, 46, 35}, new bool[]{true, false, false, true}));
 		maze.Add(48, new MapNode(48, new int[] {-1, 51, 21, -1}, new bool[]{false, false, true, false}));
 		maze.Add(49, new MapNode(49, new int[] {-1, 52, -1, -1}, new bool[]{false, false, false, false}));
-		maze.Add(50, new MapNode(50, new int[] {-1, -1, 32, -1}, new bool[]{false, false, false, true}));
+		maze.Add(50, new MapNode(50, new int[] {-1, -1, -1, 32}, new bool[]{false, false, false, true}));
 		maze.Add(51, new MapNode(51, new int[] {48, -1, -1, -1}, new bool[]{false, true, true, false}));
 		maze.Add(52, new MapNode(52, new int[] {49, -1, -1, 53}, new bool[]{false, true, false, false}));
 		maze.Add(53, new MapNode(53, new int[] {-1, 11, 52, 29}, new bool[]{false, true, false, true}));

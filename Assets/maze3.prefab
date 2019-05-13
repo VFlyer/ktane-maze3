@@ -10405,7 +10405,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ModuleType: maze3
-  ModuleDisplayName: Maze^3
+  ModuleDisplayName: "Maze\xB3"
   RequiresTimerVisibility: 0
 --- !u!114 &114688916160359850
 MonoBehaviour:
