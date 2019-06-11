@@ -909,4 +909,64 @@ public class maze3Script : MonoBehaviour
 			yield return new WaitForSeconds(0.005f);
 		}
 	}
+
+    private bool allCharsValid(char[] chs)
+    {
+        for(int i = 0; i < chs.Length; i++)
+        {
+            if (chs[i].Equals('u') || chs[i].Equals('d') || chs[i].Equals('l') || chs[i].Equals('r') || chs[i].Equals('U') || chs[i].Equals('D') || chs[i].Equals('L') || chs[i].Equals('R'))
+            {
+                continue;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //twitch plays
+    #pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"!{0} <move> [Moves the white light in the specified direction] | !{0} <moves> [Moves the white light in the specified directions in order, for example !{0} ulrd] | !{0} enter [Presses the enter button] | Valid moves are u (up), r (right), d (down), and l (left)";
+    #pragma warning restore 414
+
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+        char[] parameters = command.ToCharArray();
+        yield return null;
+        if(command.EqualsIgnoreCase("enter"))
+        {
+            btns[4].OnInteract();
+            yield return new WaitForSeconds(0.25f);
+        }else if(command.Length > 0 && allCharsValid(parameters))
+        {
+            foreach(char c in parameters)
+            {
+                if(c.Equals('u') || c.Equals('U'))
+                {
+                    btns[0].OnInteract();
+                    yield return new WaitForSeconds(0.25f);
+                }else if (c.Equals('r') || c.Equals('R'))
+                {
+                    btns[1].OnInteract();
+                    yield return new WaitForSeconds(0.25f);
+                }
+                else if (c.Equals('d') || c.Equals('D'))
+                {
+                    btns[2].OnInteract();
+                    yield return new WaitForSeconds(0.25f);
+                }
+                else if (c.Equals('l') || c.Equals('L'))
+                {
+                    btns[3].OnInteract();
+                    yield return new WaitForSeconds(0.25f);
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
 }
