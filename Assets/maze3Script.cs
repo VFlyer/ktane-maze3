@@ -920,12 +920,10 @@ public class maze3Script : MonoBehaviour
 
     IEnumerator ProcessTwitchCommand(string command)
     {
-        char[] parameters = command.ToCharArray();
-        var buttonsToPress = new List<KMSelectable>();
         if (Regex.IsMatch(command, @"^\s*enter\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
             yield return null;
-            buttonsToPress.Add(btns[4]);
+            yield return new[] { btns[4] };
             yield break;
         }
         if (Regex.IsMatch(command, @"^\s*reset\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
@@ -935,11 +933,19 @@ public class maze3Script : MonoBehaviour
             pins[node].GetComponentInChildren<Renderer>().material = unlit;
             pins[node].transform.GetChild(0).gameObject.SetActive(false);
             node = nodestart;
+
+            KeyValuePair<int, int> p;
+            rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
+
+            orientation = p.Value;
+
             pins[node].GetComponentInChildren<Renderer>().material = lit;
             pins[node].transform.GetChild(0).gameObject.SetActive(true);
             Debug.LogFormat("[Maze^3 #{0}] Reset Performed! Node is now back to initial position and face!", moduleId);
             yield break;
         }
+        char[] parameters = command.ToCharArray();
+        var buttonsToPress = new List<KMSelectable>();
         foreach (char c in parameters)
         {
             if (c.Equals('u') || c.Equals('U'))
@@ -963,8 +969,11 @@ public class maze3Script : MonoBehaviour
                 yield break;
             }
         }
-
         yield return null;
-        yield return buttonsToPress;
+        foreach (KMSelectable km in buttonsToPress)
+        {
+            km.OnInteract();
+            yield return new WaitForSeconds(.2f);
+        }
     }
 }
