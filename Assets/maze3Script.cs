@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using KModkit;
+using System.Text.RegularExpressions;
 
 /*
 Color mapping
@@ -45,6 +46,7 @@ public class maze3Script : MonoBehaviour
 						};
 
 	int node;
+    int nodestart;
 	int xRot, yRot, zRot;
 	int orientation;
 
@@ -269,6 +271,7 @@ public class maze3Script : MonoBehaviour
 
 		int[] pool = strtPosPool[p.Key];
 		node = pool[rnd.Next(0, pool.Length)];
+        nodestart = node;
 
 		pins[node].GetComponentInChildren<Renderer>().material = lit;
 		pins[node].transform.GetChild(0).gameObject.SetActive(true);
@@ -910,63 +913,58 @@ public class maze3Script : MonoBehaviour
 		}
 	}
 
-    private bool allCharsValid(char[] chs)
-    {
-        for(int i = 0; i < chs.Length; i++)
-        {
-            if (chs[i].Equals('u') || chs[i].Equals('d') || chs[i].Equals('l') || chs[i].Equals('r') || chs[i].Equals('U') || chs[i].Equals('D') || chs[i].Equals('L') || chs[i].Equals('R'))
-            {
-                continue;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
     //twitch plays
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} <move> [Moves the white light in the specified direction] | !{0} <moves> [Moves the white light in the specified directions in order, for example !{0} ulrd] | !{0} enter [Presses the enter button] | Valid moves are u (up), r (right), d (down), and l (left)";
+    private readonly string TwitchHelpMessage = @"!{0} <move> [Moves the white light in the specified direction] | !{0} <moves> [Moves the white light in the specified directions in order, for example !{0} ulrd] | !{0} enter [Presses the enter button] | !{0} reset [Resets the node position and face to the initial ones] | Valid moves are u (up), r (right), d (down), and l (left)";
     #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
     {
         char[] parameters = command.ToCharArray();
-        yield return null;
-        if(command.EqualsIgnoreCase("enter"))
+        var buttonsToPress = new List<KMSelectable>();
+        if (Regex.IsMatch(command, @"^\s*enter\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
-            btns[4].OnInteract();
-            yield return new WaitForSeconds(0.25f);
-        }else if(command.Length > 0 && allCharsValid(parameters))
+            yield return null;
+            buttonsToPress.Add(btns[4]);
+            yield break;
+        }
+        if (Regex.IsMatch(command, @"^\s*reset\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
-            foreach(char c in parameters)
+            yield return null;
+            cube.transform.localEulerAngles = new Vector3(xRot, yRot, zRot);
+            pins[node].GetComponentInChildren<Renderer>().material = unlit;
+            pins[node].transform.GetChild(0).gameObject.SetActive(false);
+            node = nodestart;
+            pins[node].GetComponentInChildren<Renderer>().material = lit;
+            pins[node].transform.GetChild(0).gameObject.SetActive(true);
+            Debug.LogFormat("[Maze^3 #{0}] Reset Performed! Node is now back to initial position and face!", moduleId);
+            yield break;
+        }
+        foreach (char c in parameters)
+        {
+            if (c.Equals('u') || c.Equals('U'))
             {
-                if(c.Equals('u') || c.Equals('U'))
-                {
-                    btns[0].OnInteract();
-                    yield return new WaitForSeconds(0.25f);
-                }else if (c.Equals('r') || c.Equals('R'))
-                {
-                    btns[1].OnInteract();
-                    yield return new WaitForSeconds(0.25f);
-                }
-                else if (c.Equals('d') || c.Equals('D'))
-                {
-                    btns[2].OnInteract();
-                    yield return new WaitForSeconds(0.25f);
-                }
-                else if (c.Equals('l') || c.Equals('L'))
-                {
-                    btns[3].OnInteract();
-                    yield return new WaitForSeconds(0.25f);
-                }
-                else
-                {
-                    break;
-                }
+                buttonsToPress.Add(btns[0]);
+            }
+            else if (c.Equals('r') || c.Equals('R'))
+            {
+                buttonsToPress.Add(btns[1]);
+            }
+            else if (c.Equals('d') || c.Equals('D'))
+            {
+                buttonsToPress.Add(btns[2]);
+            }
+            else if (c.Equals('l') || c.Equals('L'))
+            {
+                buttonsToPress.Add(btns[3]);
+            }
+            else
+            {
+                yield break;
             }
         }
+
+        yield return null;
+        yield return buttonsToPress;
     }
 }
