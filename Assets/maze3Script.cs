@@ -973,7 +973,7 @@ public class maze3Script : MonoBehaviour
         foreach (KMSelectable km in buttonsToPress)
         {
             km.OnInteract();
-            yield return new WaitForSeconds(.2f);
+            yield return new WaitForSeconds(.3f);
         }
     }
 }
