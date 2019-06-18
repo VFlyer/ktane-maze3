@@ -194,7 +194,7 @@ public class maze3Script : MonoBehaviour
 		maze.Add(12, new MapNode(12, new int[] {-1, -1, -1, 13}, new bool[]{false, false, true, false}));
 		maze.Add(13, new MapNode(13, new int[] {-1, -1, 12, 14}, new bool[]{false, false, false, false}));
 		maze.Add(14, new MapNode(14, new int[] {11, -1, 13, -1}, new bool[]{false, false, false, true}));
-		maze.Add(15, new MapNode(15, new int[] {20, -1, -1, -1}, new bool[]{false, true, true, false}));
+		maze.Add(15, new MapNode(15, new int[] {-1, -1, 20, -1}, new bool[]{false, true, true, false}));
 		maze.Add(16, new MapNode(16, new int[] {-1, 1, -1, 17}, new bool[]{false, true, false, false}));
 		maze.Add(17, new MapNode(17, new int[] {-1, 2, 16, -1}, new bool[]{false, true, false, true}));
 	
