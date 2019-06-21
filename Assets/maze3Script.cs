@@ -915,7 +915,7 @@ public class maze3Script : MonoBehaviour
 
     //twitch plays
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} <move> [Moves the white light in the specified direction] | !{0} <moves> [Moves the white light in the specified directions in order, for example !{0} ulrd] | !{0} enter [Presses the enter button] | !{0} reset [Resets the node position and face to the initial ones] | Valid moves are u (up), r (right), d (down), and l (left)";
+    private readonly string TwitchHelpMessage = @"!{0} <move> [Moves the white light in the specified direction] | !{0} <moves> [Moves the white light in the specified directions in order, for example !{0} ulrd] | !{0} enter [Presses the enter button] | !{0} reset [Resets the node position and face to the initial ones] | !{0} tilt u [General TP command, use to rotate maze] | Valid moves are u (up), r (right), d (down), and l (left)";
     #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
