@@ -19,6 +19,6 @@ MonoBehaviour:
     Repository: https://github.com/luisdiogo98/ktane-maze3\r\n\r\nAny problems/suggestions,
     feel free to contact me on the KTaNE Discord @TheThirdMan. Join the KTaNE Discord
     here: https://discord.gg/Fv7YEDj\r"
-  version: 1.8
+  version: 1.9
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 6d37ff0cc834e2d44addd36926713419, type: 3}

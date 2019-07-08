@@ -38,7 +38,7 @@ public class maze3Script : MonoBehaviour
 
 	int[][] strtPosPool = { 
 							new int[] {0, 1, 2, 3, 5, 6, 7, 8},
-							new int[] {11, 12, 14, 15, 16, 17},
+							new int[] {9, 10, 11, 12, 14, 15, 16, 17},
 							new int[] {18, 19, 20, 21, 23, 24, 25, 26},
 							new int[] {27, 28, 29, 30, 32, 33, 34, 35},
 							new int[] {36, 37, 38, 39, 41, 42, 43, 44},
@@ -188,8 +188,8 @@ public class maze3Script : MonoBehaviour
 		maze.Add(7, new MapNode(7, new int[] {4, 37, -1, 8}, new bool[]{false, true, false, false}));
 		maze.Add(8, new MapNode(8, new int[] {5, 38, 7, 33}, new bool[]{false, true, false, true}));
 
-		maze.Add(9, new MapNode(9, new int[] {-1, -1, -1, 10}, new bool[]{true, false, true, false}));
-		maze.Add(10, new MapNode(10, new int[] {-1, -1, 9, -1}, new bool[]{true, false, false, false}));
+		maze.Add(9, new MapNode(9, new int[] {51, -1, -1, 10}, new bool[]{true, false, true, false}));
+		maze.Add(10, new MapNode(10, new int[] {52, -1, 9, -1}, new bool[]{true, false, false, false}));
 		maze.Add(11, new MapNode(11, new int[] {53, 14, -1, 29}, new bool[]{true, false, false, true}));
 		maze.Add(12, new MapNode(12, new int[] {-1, -1, -1, 13}, new bool[]{false, false, true, false}));
 		maze.Add(13, new MapNode(13, new int[] {-1, -1, 12, 14}, new bool[]{false, false, false, false}));
@@ -234,8 +234,8 @@ public class maze3Script : MonoBehaviour
 		maze.Add(48, new MapNode(48, new int[] {-1, 51, 21, -1}, new bool[]{false, false, true, false}));
 		maze.Add(49, new MapNode(49, new int[] {-1, 52, -1, -1}, new bool[]{false, false, false, false}));
 		maze.Add(50, new MapNode(50, new int[] {-1, -1, -1, 32}, new bool[]{false, false, false, true}));
-		maze.Add(51, new MapNode(51, new int[] {48, -1, -1, -1}, new bool[]{false, true, true, false}));
-		maze.Add(52, new MapNode(52, new int[] {49, -1, -1, 53}, new bool[]{false, true, false, false}));
+		maze.Add(51, new MapNode(51, new int[] {48, 9, -1, -1}, new bool[]{false, true, true, false}));
+		maze.Add(52, new MapNode(52, new int[] {49, 10, -1, 53}, new bool[]{false, true, false, false}));
 		maze.Add(53, new MapNode(53, new int[] {-1, 11, 52, 29}, new bool[]{false, true, false, true}));
 	}
 
