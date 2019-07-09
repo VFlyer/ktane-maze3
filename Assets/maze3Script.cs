@@ -7,6 +7,8 @@ using UnityEngine;
 using KModkit;
 using System.Text.RegularExpressions;
 
+using Rnd = UnityEngine.Random;
+
 /*
 Color mapping
 
@@ -23,8 +25,7 @@ public class maze3Script : MonoBehaviour
 {
 	public KMBombInfo bomb;
 	public KMAudio Audio;
-
-	static System.Random rnd = new System.Random();
+    public KMColorblindMode ColorblindMode;
 
 	public KMSelectable[] btns;
 	public GameObject[] pins;
@@ -35,6 +36,7 @@ public class maze3Script : MonoBehaviour
 	public Material unlit;
 	public GameObject[] orientators;
 	public GameObject rotator;
+    public TextMesh[] colorblindIndicators;
 
 	int[][] strtPosPool = { 
 							new int[] {0, 1, 2, 3, 5, 6, 7, 8},
@@ -88,7 +90,7 @@ public class maze3Script : MonoBehaviour
         debugMap.AppendLine(@"   │   │   │ 46│ 49│ 50│   │   │   ");
         debugMap.AppendLine(@"   │   │   │ 51│ 52│ 53│   │   │   ");
 
-		Debug.LogFormat("[Maze^3 #{0}] Node mapping for logging purposes:\n {1}", moduleId, debugMap.ToString());
+		Debug.LogFormat("<Maze³ #{0}> Node mapping for logging purposes:\n {1}", moduleId, debugMap.ToString());
 
 		PrepRotationMap();
 		PrepMaze();
@@ -96,6 +98,8 @@ public class maze3Script : MonoBehaviour
 
 		CalcSolution();
 
+        foreach (var obj in colorblindIndicators)
+            obj.gameObject.SetActive(ColorblindMode.ColorblindModeActive);
 		RandomizeStartingPos();
 		SetColorLights();
 	}
@@ -254,30 +258,30 @@ public class maze3Script : MonoBehaviour
 		}
 	}
 
-	void RandomizeStartingPos()
-	{
-		xRot = rnd.Next() % 4 * 90;
-		yRot = rnd.Next() % 4 * 90;	
-		zRot = rnd.Next() % 4 * 90;
+    void RandomizeStartingPos()
+    {
+        xRot = Rnd.Range(0, 4) * 90;
+        yRot = Rnd.Range(0, 4) * 90;
+        zRot = Rnd.Range(0, 4) * 90;
 
-		cube.transform.localEulerAngles = new Vector3(xRot, yRot, zRot); 
+        cube.transform.localEulerAngles = new Vector3(xRot, yRot, zRot);
 
-		KeyValuePair<int, int> p;
-		rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
+        KeyValuePair<int, int> p;
+        rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
 
-		orientation = p.Value;
+        orientation = p.Value;
 
-		Debug.LogFormat("[Maze^3 #{0}] Starting face: {1} (rotated {2} degrees)", moduleId, GetColor(p.Key), p.Value);
+        Debug.LogFormat("[Maze³ #{0}] Starting face: {1} (rotated {2} degrees)", moduleId, GetColor(p.Key), p.Value);
 
-		int[] pool = strtPosPool[p.Key];
-		node = pool[rnd.Next(0, pool.Length)];
+        int[] pool = strtPosPool[p.Key];
+        node = pool[Rnd.Range(0, pool.Length)];
         nodestart = node;
 
-		pins[node].GetComponentInChildren<Renderer>().material = lit;
-		pins[node].transform.GetChild(0).gameObject.SetActive(true);
+        pins[node].GetComponentInChildren<Renderer>().material = lit;
+        pins[node].transform.GetChild(0).gameObject.SetActive(true);
 
-		Debug.LogFormat("[Maze^3 #{0}] Starting node: {1}", moduleId, node);
-	}
+        Debug.LogFormat("[Maze³ #{0}] Starting node: {1}", moduleId, node);
+    }
 
 	String GetColor(int i)
 	{
@@ -301,26 +305,37 @@ public class maze3Script : MonoBehaviour
 	}
 
 
-	void SetColorLights()
-	{
-		KeyValuePair<int, int> p;
-		rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
+    void SetColorLights()
+    {
+        foreach (var obj in colorblindIndicators)
+        {
+            obj.text = "";
+            // Randomize the position/orientation of the colorblind indicators to avoid giving an advantage
+            var orientation = Rnd.Range(0, 4);
+            obj.transform.localPosition = new Vector3(new[] { 1, 1, -1, -1 }[orientation], .141f, new[] { -1, 1, 1, -1 }[orientation]);
+            obj.transform.localEulerAngles = new Vector3(90, new[] { 0, 270, 180, 90 }[orientation], 0);
+        }
 
-		int pos = p.Key * 9 + 4;
+        KeyValuePair<int, int> p;
+        rotationMap.TryGetValue(new Vector3(xRot, yRot, zRot), out p);
 
-		pins[pos].GetComponentInChildren<Renderer>().material = colors[p.Key];
-		pins[pos].transform.GetChild(0).gameObject.SetActive(true);
+        int pos = p.Key * 9 + 4;
 
-		int adjColor = GetRndAdjacentColor(p.Key);
-		pos = adjColor * 9 + 4;
+        pins[pos].GetComponentInChildren<Renderer>().material = colors[p.Key];
+        colorblindIndicators[p.Key].text = "RBYGPO"[p.Key].ToString();
+        pins[pos].transform.GetChild(0).gameObject.SetActive(true);
 
-		pins[pos].GetComponentInChildren<Renderer>().material = colors[adjColor];
-		pins[pos].transform.GetChild(0).gameObject.SetActive(true);
-	}
+        int adjColor = GetRndAdjacentColor(p.Key);
+        pos = adjColor * 9 + 4;
+
+        pins[pos].GetComponentInChildren<Renderer>().material = colors[adjColor];
+        colorblindIndicators[adjColor].text = "RBYGPO"[adjColor].ToString();
+        pins[pos].transform.GetChild(0).gameObject.SetActive(true);
+    }
 
 	int GetRndAdjacentColor(int color)
 	{
-		int pos = rnd.Next() % 4;
+        int pos = Rnd.Range(0, 4);
 
 		switch(color)
 		{
@@ -356,7 +371,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Up button, rotated 0 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Up button, rotated 0 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -369,7 +384,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Up button, rotated 90 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Up button, rotated 90 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -382,7 +397,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Up button, rotated 180 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Up button, rotated 180 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -395,7 +410,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Up button, rotated 270 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Up button, rotated 270 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -423,7 +438,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Down button, rotated 0 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Down button, rotated 0 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -436,7 +451,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Down button, rotated 90 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Down button, rotated 90 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -449,7 +464,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Down button, rotated 180 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Down button, rotated 180 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -462,7 +477,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Down button, rotated 270 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Down button, rotated 270 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -490,7 +505,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Left button, rotated 0 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Left button, rotated 0 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -503,7 +518,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Left button, rotated 90 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Left button, rotated 90 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -516,7 +531,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Left button, rotated 180 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Left button, rotated 180 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -529,7 +544,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Left button, rotated 270 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Left button, rotated 270 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -557,7 +572,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk right on node {1} (Right button, rotated 0 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Right button, rotated 0 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -570,7 +585,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk up on node {1} (Right button, rotated 90 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Right button, rotated 90 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -583,7 +598,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk left on node {1} (Right button, rotated 180 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Right button, rotated 180 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -596,7 +611,7 @@ public class maze3Script : MonoBehaviour
 				else
 				{
 					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to walk down on node {1} (Right button, rotated 270 degrees).", moduleId, node);
+					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Right button, rotated 270 degrees).", moduleId, node);
 				}
 				break;
 			}
@@ -716,10 +731,10 @@ public class maze3Script : MonoBehaviour
 			Debug.Log(orientation);
 
 			color = node / 9;
-			Debug.LogFormat("[Maze^3 #{0}] Now at {1} face.", moduleId, GetColor(color));
+			Debug.LogFormat("[Maze³ #{0}] Now at {1} face.", moduleId, GetColor(color));
 		}
 		
-		Debug.LogFormat("[Maze^3 #{0}] Now at node {1}.", moduleId, node);
+		Debug.LogFormat("[Maze³ #{0}] Now at node {1}.", moduleId, node);
 
 	}
 
@@ -732,7 +747,7 @@ public class maze3Script : MonoBehaviour
 
 		if(node == solution[currentPress])
 		{
-			Debug.LogFormat("[Maze^3 #{0}] Successfuly submited {1} position.", moduleId, GetColor(node / 9));
+			Debug.LogFormat("[Maze³ #{0}] Successfuly submited {1} position.", moduleId, GetColor(node / 9));
 
 			checkLights[currentPress].GetComponentInChildren<Renderer>().material = colors[node / 9];
 			checkLights[currentPress].transform.GetChild(0).gameObject.SetActive(true);
@@ -742,7 +757,7 @@ public class maze3Script : MonoBehaviour
 
 			if(currentPress > 2)
 			{
-				Debug.LogFormat("[Maze^3 #{0}] Module solved!", moduleId);
+				Debug.LogFormat("[Maze³ #{0}] Module solved!", moduleId);
 				GetComponent<KMBombModule>().HandlePass();
 				moduleSolved = true;
 
@@ -756,9 +771,9 @@ public class maze3Script : MonoBehaviour
 			GetComponent<KMBombModule>().HandleStrike();
 
 			if(node == (node / 9) * 9 + 4)
-				Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to submit on {1} position (Expected {2}).", moduleId, GetColor(node / 9), GetColor(solution[currentPress] / 9));
+				Debug.LogFormat("[Maze³ #{0}] Strike! Tried to submit on {1} position (Expected {2}).", moduleId, GetColor(node / 9), GetColor(solution[currentPress] / 9));
 			else
-				Debug.LogFormat("[Maze^3 #{0}] Strike! Tried to submit on an uncolored position (Expected {1}).", moduleId, GetColor(solution[currentPress] / 9));
+				Debug.LogFormat("[Maze³ #{0}] Strike! Tried to submit on an uncolored position (Expected {1}).", moduleId, GetColor(solution[currentPress] / 9));
 		}
 	}
 
@@ -847,7 +862,7 @@ public class maze3Script : MonoBehaviour
 			solution[2] = 40;
 		}
 
-		Debug.LogFormat("[Maze^3 #{0}] Correct color sequence is: {1}, {2}, {3}.", moduleId, GetColor(solution[0]/9), GetColor(solution[1]/9), GetColor(solution[2]/9));
+		Debug.LogFormat("[Maze³ #{0}] Correct color sequence is: {1}, {2}, {3}.", moduleId, GetColor(solution[0]/9), GetColor(solution[1]/9), GetColor(solution[2]/9));
 
 	}
 
@@ -915,11 +930,18 @@ public class maze3Script : MonoBehaviour
 
     //twitch plays
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} <move> [Moves the white light in the specified direction] | !{0} <moves> [Moves the white light in the specified directions in order, for example !{0} ulrd] | !{0} enter [Presses the enter button] | !{0} reset [Resets the node position and face to the initial ones] | !{0} tilt u [General TP command, use to rotate maze] | Valid moves are u (up), r (right), d (down), and l (left)";
+    private readonly string TwitchHelpMessage = @"!{0} udlr [move in the specified directions in order; u = up, r = right, d = down, l = left] | !{0} enter [press the enter button] | !{0} reset | !{0} colorblind";
     #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
     {
+        if (Regex.IsMatch(command, @"^\s*colorblind\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+            foreach (var obj in colorblindIndicators)
+                obj.gameObject.SetActive(true);
+            yield return null;
+            yield break;
+        }
         if (Regex.IsMatch(command, @"^\s*enter\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
             yield return null;
@@ -941,7 +963,7 @@ public class maze3Script : MonoBehaviour
 
             pins[node].GetComponentInChildren<Renderer>().material = lit;
             pins[node].transform.GetChild(0).gameObject.SetActive(true);
-            Debug.LogFormat("[Maze^3 #{0}] Reset Performed! Node is now back to initial position and face!", moduleId);
+            Debug.LogFormat("[Maze³ #{0}] Reset performed! Node is now back to initial position and face!", moduleId);
             yield break;
         }
         char[] parameters = command.ToCharArray();
