@@ -59,9 +59,7 @@ public class KMMissionTableOfContentsEditor : Editor
     {
         serializedObject.Update();
 
-        var titleProperty = serializedObject.FindProperty("Title");
-        EditorGUILayout.PropertyField(titleProperty);
-        titleProperty.stringValue = titleProperty.stringValue.Trim();
+        EditorGUILayout.PropertyField(serializedObject.FindProperty("Title"));
 
         DrawTableOfContentsToolbar();
         DrawTableOfContents();
@@ -172,7 +170,7 @@ public class KMMissionTableOfContentsEditor : Editor
         EditorGUILayout.LabelField(string.Format("{0}.", sectionIndex + 1), GUILayout.Width(30));
 
         SerializedProperty titleProperty = sectionProperty.FindPropertyRelative("Title");
-        titleProperty.stringValue = EditorGUILayout.TextField(titleProperty.stringValue).Trim();
+        titleProperty.stringValue = EditorGUILayout.TextField(titleProperty.stringValue);
 
         GUILayout.FlexibleSpace();
 

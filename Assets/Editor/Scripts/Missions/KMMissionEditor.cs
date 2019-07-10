@@ -30,10 +30,7 @@ public class KMMissionEditor : Editor
             EditorGUILayout.SelectableLabel(string.Format("mod_{0}_{1}", ModConfig.ID, serializedObject.targetObject.name));
             EditorGUILayout.EndHorizontal();
 
-            var displayNameProperty = serializedObject.FindProperty("DisplayName");
-            EditorGUILayout.PropertyField(displayNameProperty);
-            displayNameProperty.stringValue = displayNameProperty.stringValue.Trim();
-
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("DisplayName"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("Description"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("PacingEventsEnabled"));
 
@@ -408,13 +405,8 @@ public class KMMissionEditor : Editor
         KMComponentPool componentPool = mission.GeneratorSetting.ComponentPools[poolIndex];
         SerializedProperty componentPools = serializedObject.FindProperty("GeneratorSetting.ComponentPools");
 
-        var modTypesElement = componentPools.GetArrayElementAtIndex(poolIndex).FindPropertyRelative("ModTypes");
-        EditorGUILayout.PropertyField(modTypesElement, true);
-
-        // Trim whitespace from mod types
-        for (int i = 0; i < modTypesElement.arraySize; i++) {
-            modTypesElement.GetArrayElementAtIndex(i).stringValue = modTypesElement.GetArrayElementAtIndex(i).stringValue.Trim();
-        }
+        var element = componentPools.GetArrayElementAtIndex(poolIndex);
+        EditorGUILayout.PropertyField(element.FindPropertyRelative("ModTypes"), true);
 
         //Clear any special flags if needed
         if (componentPool.ModTypes != null && componentPool.ModTypes.Count > 0)

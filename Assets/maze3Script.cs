@@ -76,21 +76,7 @@ public class maze3Script : MonoBehaviour
 
 	void Start () 
 	{
-		 var debugMap = new StringBuilder();
-        debugMap.AppendLine(@"   │   │   │  9│ 10│ 11│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 12│ 13│ 14│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 15│ 16│ 17│   │   │   ");
-        debugMap.AppendLine(@" 18│ 19│ 20│  0│  1│  2│ 27│ 28│ 29");
-        debugMap.AppendLine(@" 21│ 22│ 23│  3│  4│  5│ 30│ 31│ 32");
-        debugMap.AppendLine(@" 24│ 25│ 26│  6│  7│  8│ 33│ 34│ 35");
-        debugMap.AppendLine(@"   │   │   │ 36│ 37│ 38│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 39│ 40│ 41│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 42│ 43│ 44│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 45│ 46│ 47│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 46│ 49│ 50│   │   │   ");
-        debugMap.AppendLine(@"   │   │   │ 51│ 52│ 53│   │   │   ");
-
-		Debug.LogFormat("<Maze³ #{0}> Node mapping for logging purposes:\n {1}", moduleId, debugMap.ToString());
+		Debug.LogFormat("[Maze³ #{0}] Node mapping for logging purposes:", moduleId);
 
 		PrepRotationMap();
 		PrepMaze();
