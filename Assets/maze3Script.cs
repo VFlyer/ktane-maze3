@@ -59,6 +59,8 @@ public class maze3Script : MonoBehaviour
     int moduleId;
     private bool moduleSolved = false;
 
+	bool rotating = false;
+
 	Dictionary<Vector3, KeyValuePair<int, int>> rotationMap = new Dictionary<Vector3, KeyValuePair<int, int>>();
 	Dictionary<int, MapNode> maze = new Dictionary<int, MapNode>();
 
@@ -340,7 +342,7 @@ public class maze3Script : MonoBehaviour
 	{
 		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 		btns[0].AddInteractionPunch(.5f);
-		if(moduleSolved)
+		if(moduleSolved || rotating)
 			return;
 		
 		MapNode n;
@@ -407,7 +409,7 @@ public class maze3Script : MonoBehaviour
 	{
 		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 		btns[2].AddInteractionPunch(.5f);
-		if(moduleSolved)
+		if(moduleSolved || rotating)
 			return;
 
 		MapNode n;
@@ -474,7 +476,7 @@ public class maze3Script : MonoBehaviour
 	{
 		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 		btns[3].AddInteractionPunch(.5f);
-		if(moduleSolved)
+		if(moduleSolved || rotating)
 			return;
 		
 		MapNode n;
@@ -541,7 +543,7 @@ public class maze3Script : MonoBehaviour
 	{
 		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
 		btns[1].AddInteractionPunch(.5f);
-		if(moduleSolved)
+		if(moduleSolved || rotating)
 			return;
 
 		MapNode n;
@@ -906,12 +908,16 @@ public class maze3Script : MonoBehaviour
 
 	IEnumerator RotateCube(int xVal, int zVal)
 	{
+		rotating = true;
+
 		for(int i = 0; i < 18; i++)
 		{
 			cube.transform.RotateAround(rotator.transform.position, rotator.transform.right, 5f * xVal);
 			cube.transform.RotateAround(rotator.transform.position, rotator.transform.forward, 5f * zVal);
 			yield return new WaitForSeconds(0.005f);
 		}
+
+		rotating = false;
 	}
 
     //twitch plays
