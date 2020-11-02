@@ -13,12 +13,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: maze3
   title: "Maze\xB3"
-  description: "It\u2019s like the original, but on a whole \u2018nother scale!\r\n\r\nModule
-    by Pruz\r\nImplemented by ThePianoPlayer\r\nmoduleID: maze3\r\n\r\nManual HTML:
-    https://ktane.timwi.de/HTML/Maze%5E3.html\r\nManual PDF: https://ktane.timwi.de/PDF/Maze%5E3.pdf\r\n\r\nGitHub
-    Repository: https://github.com/luisdiogo98/ktane-maze3\r\n\r\nAny problems/suggestions,
-    feel free to contact me on the KTaNE Discord @TheThirdMan. Join the KTaNE Discord
-    here: https://discord.gg/Fv7YEDj"
+  description: "It\u2019s like the original, but on a whole \u2018nother scale!\r\n\r\n[b]This
+    is a reupload of a module by the original author. Please unsubscribe/disable the
+    module [url=https://steamcommunity.com/sharedfiles/filedetails/?id=1717175402]here.[/url][/b]\n\nModule
+    by Pruz\r\nOriginally Implemented by TheThirdMan\r\nReuploaded and Maintained
+    by VFlyer\nmoduleID: maze3\r\n\r\nManual HTML: https://ktane.timwi.de/HTML/Maze%5E3.html\r\nManual
+    PDF: https://ktane.timwi.de/PDF/Maze%5E3.pdf\r\n\r\nGitHub Repository (Legacy
+    Version): https://github.com/luisdiogo98/ktane-maze3\r\nGitHub Repository (Reupload
+    Version): https://github.com/VFlyer/ktane-maze3\r\r\n"
   version: 1.13
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 6d37ff0cc834e2d44addd36926713419, type: 3}

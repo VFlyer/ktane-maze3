@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using KModkit;
 using System.Text.RegularExpressions;
 
 using Rnd = UnityEngine.Random;
+using System;
 
 /*
 Color mapping
@@ -24,10 +23,12 @@ ORANGE - 5
 public class maze3Script : MonoBehaviour 
 {
 	public KMBombInfo bomb;
-	public KMAudio Audio;
+	public KMAudio mAudio;
+	public KMBombModule modSelf;
     public KMColorblindMode ColorblindMode;
 
 	public KMSelectable[] btns;
+	public KMSelectable submitBtn;
 	public GameObject[] pins;
 	public GameObject[] checkLights;
 	public GameObject cube;
@@ -57,23 +58,40 @@ public class maze3Script : MonoBehaviour
 
 	static int moduleIdCounter = 1;
     int moduleId;
-    private bool moduleSolved = false;
-
-	bool rotating = false;
+	private bool moduleSolved = false, colorblindDetected = false, rotating = false, hasStruck;
 
 	Dictionary<Vector3, KeyValuePair<int, int>> rotationMap = new Dictionary<Vector3, KeyValuePair<int, int>>();
 	Dictionary<int, MapNode> maze = new Dictionary<int, MapNode>();
+	List<int> nodePath = new List<int>();
 
 	void Awake()
 	{
 		moduleId = moduleIdCounter++;
-		
+
+		for (int x = 0; x < 4; x++)
+        {
+			int y = x;
+			btns[x].OnInteract += delegate {
+				HandleMovement(y);
+				return false;
+			};
+        }
+		/*
 		btns[0].OnInteract += delegate () { HandleUp(); return false; };
 		btns[1].OnInteract += delegate () { HandleRight(); return false; };
 		btns[2].OnInteract += delegate () { HandleDown(); return false; };
 		btns[3].OnInteract += delegate () { HandleLeft(); return false; };
-		btns[4].OnInteract += delegate () { HandleSubmit(); return false; };
+		*/
+		submitBtn.OnInteract += delegate () { HandleSubmit(); return false; };
 
+		try
+        {
+			colorblindDetected = ColorblindMode.ColorblindModeActive;
+        }
+		catch
+        {
+			colorblindDetected = false;
+        }
 	}
 
 	void Start () 
@@ -87,9 +105,10 @@ public class maze3Script : MonoBehaviour
 		CalcSolution();
 
         foreach (var obj in colorblindIndicators)
-            obj.gameObject.SetActive(ColorblindMode.ColorblindModeActive);
+            obj.gameObject.SetActive(colorblindDetected);
 		RandomizeStartingPos();
 		SetColorLights();
+		nodePath.Add(node);
 	}
 	
 	void Update () 
@@ -170,6 +189,7 @@ public class maze3Script : MonoBehaviour
 
 	void PrepMaze()
 	{
+		//maze.Add(idx, new MapNode(idx, new int[] {resultUp, resultDown, resultLeft, resultRight}, new bool[]{turnOnUp, turnOnDown, turnOnLeft, turnOnRight}));
 		maze.Add(0, new MapNode(0, new int[] {-1, -1, 20, 1}, new bool[]{true, false, true, false}));
 		maze.Add(1, new MapNode(1, new int[] {16, 4, 0, -1}, new bool[]{true, false, false, false}));
 		maze.Add(2, new MapNode(2, new int[] {17, -1, -1, 27}, new bool[]{true, false, false, true}));
@@ -208,7 +228,7 @@ public class maze3Script : MonoBehaviour
 		maze.Add(32, new MapNode(32, new int[] {29, -1, 31, 50}, new bool[]{false, false, false, true}));
 		maze.Add(33, new MapNode(33, new int[] {-1, 38, 8, -1}, new bool[]{false, true, true, false}));
 		maze.Add(34, new MapNode(34, new int[] {-1, 41, -1, -1}, new bool[]{false, true, false, false}));
-		maze.Add(35, new MapNode(35, new int[] {-1, 44, 34, 47}, new bool[]{false, true, false, true}));
+		maze.Add(35, new MapNode(35, new int[] {-1, -1, -1, 47}, new bool[]{false, true, false, true}));
 	
 		maze.Add(36, new MapNode(36, new int[] {6, -1, -1, -1}, new bool[]{true, false, true, false}));
 		maze.Add(37, new MapNode(37, new int[] {7, 40, -1, -1}, new bool[]{true, false, false, false}));
@@ -248,10 +268,11 @@ public class maze3Script : MonoBehaviour
 
     void RandomizeStartingPos()
     {
+		
         xRot = Rnd.Range(0, 4) * 90;
         yRot = Rnd.Range(0, 4) * 90;
         zRot = Rnd.Range(0, 4) * 90;
-
+		
         cube.transform.localEulerAngles = new Vector3(xRot, yRot, zRot);
 
         KeyValuePair<int, int> p;
@@ -271,7 +292,7 @@ public class maze3Script : MonoBehaviour
         Debug.LogFormat("[Maze³ #{0}] Starting node: {1}", moduleId, node);
     }
 
-	String GetColor(int i)
+	string GetColor(int i)
 	{
 		switch(i)
 		{
@@ -310,14 +331,14 @@ public class maze3Script : MonoBehaviour
         int pos = p.Key * 9 + 4;
 
         pins[pos].GetComponentInChildren<Renderer>().material = colors[p.Key];
-        colorblindIndicators[p.Key].text = "RBYGPO"[p.Key].ToString();
+        colorblindIndicators[p.Key].text = "RBYGMO"[p.Key].ToString();
         pins[pos].transform.GetChild(0).gameObject.SetActive(true);
 
         int adjColor = GetRndAdjacentColor(p.Key);
         pos = adjColor * 9 + 4;
 
         pins[pos].GetComponentInChildren<Renderer>().material = colors[adjColor];
-        colorblindIndicators[adjColor].text = "RBYGPO"[adjColor].ToString();
+        colorblindIndicators[adjColor].text = "RBYGMO"[adjColor].ToString();
         pins[pos].transform.GetChild(0).gameObject.SetActive(true);
     }
 
@@ -337,272 +358,133 @@ public class maze3Script : MonoBehaviour
 
 		return -1;
 	}
-
-	void HandleUp()
-	{
-		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
-		btns[0].AddInteractionPunch(.5f);
-		if(moduleSolved || rotating)
-			return;
-		
+	bool IsSafeToWalk(int direction)
+    {
 		MapNode n;
 		maze.TryGetValue(node, out n);
 
-		switch(orientation)
-		{
+		switch (orientation)
+        {
 			case 0:
-			{
-				if(n.path[MapNode.up] != -1)
-				{	
-					ChangePos(MapNode.up, MapNode.up);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Up button, rotated 0 degrees).", moduleId, node);
-				}
-				break;
-			}
+                {
+					switch (direction)
+                    {
+						case MapNode.up:
+                            {
+								return n.path[MapNode.up] != -1;
+                            }
+						case MapNode.down:
+							{
+								return n.path[MapNode.down] != -1;
+							}
+						case MapNode.left:
+							{
+								return n.path[MapNode.left] != -1;
+							}
+						case MapNode.right:
+							{
+								return n.path[MapNode.right] != -1;
+							}
+					}
+					break;
+                }
 			case 90:
-			{
-				if(n.path[MapNode.left] != -1)
-				{	
-					ChangePos(MapNode.left, MapNode.up);
-				}
-				else
 				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Up button, rotated 90 degrees).", moduleId, node);
+					switch (direction)
+					{
+						case MapNode.up:
+							{
+								return n.path[MapNode.left] != -1;
+							}
+						case MapNode.down:
+							{
+								return n.path[MapNode.right] != -1;
+							}
+						case MapNode.left:
+							{
+								return n.path[MapNode.down] != -1;
+							}
+						case MapNode.right:
+							{
+								return n.path[MapNode.up] != -1;
+							}
+					}
+					break;
 				}
-				break;
-			}
 			case 180:
-			{
-				if(n.path[MapNode.down] != -1)
-				{	
-					ChangePos(MapNode.down, MapNode.up);
-				}
-				else
 				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Up button, rotated 180 degrees).", moduleId, node);
+					switch (direction)
+					{
+						case MapNode.up:
+							{
+								return n.path[MapNode.down] != -1;
+							}
+						case MapNode.down:
+							{
+								return n.path[MapNode.up] != -1;
+							}
+						case MapNode.left:
+							{
+								return n.path[MapNode.right] != -1;
+							}
+						case MapNode.right:
+							{
+								return n.path[MapNode.left] != -1;
+							}
+					}
+					break;
 				}
-				break;
-			}
 			case 270:
-			{
-				if(n.path[MapNode.right] != -1)
-				{	
-					ChangePos(MapNode.right, MapNode.up);
-				}
-				else
 				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Up button, rotated 270 degrees).", moduleId, node);
+					switch (direction)
+					{
+						case MapNode.up:
+							{
+								return n.path[MapNode.right] != -1;
+							}
+						case MapNode.down:
+							{
+								return n.path[MapNode.left] != -1;
+							}
+						case MapNode.left:
+							{
+								return n.path[MapNode.up] != -1;
+							}
+						case MapNode.right:
+							{
+								return n.path[MapNode.down] != -1;
+							}
+					}
+					break;
 				}
-				break;
-			}
 		}
-	}
+		return false;
+    }
 
-	void HandleDown()
-	{
-		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
-		btns[2].AddInteractionPunch(.5f);
-		if(moduleSolved || rotating)
+	void HandleMovement(int direction)
+    {
+		mAudio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
+		btns[direction].AddInteractionPunch(.5f);
+		if (moduleSolved || rotating)
 			return;
 
-		MapNode n;
-		maze.TryGetValue(node, out n);
-
-		switch(orientation)
-		{
-			case 0:
-			{
-				if(n.path[MapNode.down] != -1)
-				{	
-					ChangePos(MapNode.down, MapNode.down);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Down button, rotated 0 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 90:
-			{
-				if(n.path[MapNode.right] != -1)
-				{	
-					ChangePos(MapNode.right, MapNode.down);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Down button, rotated 90 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 180:
-			{
-				if(n.path[MapNode.up] != -1)
-				{	
-					ChangePos(MapNode.up, MapNode.down);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Down button, rotated 180 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 270:
-			{
-				if(n.path[MapNode.left] != -1)
-				{	
-					ChangePos(MapNode.left, MapNode.down);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Down button, rotated 270 degrees).", moduleId, node);
-				}
-				break;
-			}
+		int[] directionsCCW = { MapNode.up, MapNode.left, MapNode.down, MapNode.right, };
+		string[] strikeDirection = new string[] { "Up", "Left", "Down", "Right" };
+		int idx = Array.IndexOf(directionsCCW, direction);
+		if (idx == -1) return;
+		if (IsSafeToWalk(direction))
+        {
+			ChangePos(directionsCCW[(idx + orientation / 90) % 4], directionsCCW[idx]);
+			nodePath.Add(node);
 		}
-	}
-
-	void HandleLeft()
-	{
-		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
-		btns[3].AddInteractionPunch(.5f);
-		if(moduleSolved || rotating)
-			return;
-		
-		MapNode n;
-		maze.TryGetValue(node, out n);
-
-		switch(orientation)
-		{
-			case 0:
-			{
-				if(n.path[MapNode.left] != -1)
-				{	
-					ChangePos(MapNode.left, MapNode.left);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Left button, rotated 0 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 90:
-			{
-				if(n.path[MapNode.down] != -1)
-				{	
-					ChangePos(MapNode.down, MapNode.left);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Left button, rotated 90 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 180:
-			{
-				if(n.path[MapNode.right] != -1)
-				{	
-					ChangePos(MapNode.right, MapNode.left);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Left button, rotated 180 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 270:
-			{
-				if(n.path[MapNode.up] != -1)
-				{	
-					ChangePos(MapNode.up, MapNode.left);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Left button, rotated 270 degrees).", moduleId, node);
-				}
-				break;
-			}
-		}
-	}
-
-	void HandleRight()
-	{
-		GetComponent<KMAudio>().PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, transform);
-		btns[1].AddInteractionPunch(.5f);
-		if(moduleSolved || rotating)
-			return;
-
-		MapNode n;
-		maze.TryGetValue(node, out n);
-
-		switch(orientation)
-		{
-			case 0:
-			{
-				if(n.path[MapNode.right] != -1)
-				{	
-					ChangePos(MapNode.right, MapNode.right);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk right on node {1} (Right button, rotated 0 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 90:
-			{
-				if(n.path[MapNode.up] != -1)
-				{	
-					ChangePos(MapNode.up, MapNode.right);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk up on node {1} (Right button, rotated 90 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 180:
-			{
-				if(n.path[MapNode.left] != -1)
-				{	
-					ChangePos(MapNode.left, MapNode.right);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk left on node {1} (Right button, rotated 180 degrees).", moduleId, node);
-				}
-				break;
-			}
-			case 270:
-			{
-				if(n.path[MapNode.down] != -1)
-				{	
-					ChangePos(MapNode.down,MapNode.right);
-				}
-				else
-				{
-					GetComponent<KMBombModule>().HandleStrike();
-					Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk down on node {1} (Right button, rotated 270 degrees).", moduleId, node);
-				}
-				break;
-			}
+		else
+        {
+			modSelf.HandleStrike();
+			Debug.LogFormat("[Maze³ #{0}] Path taken before strike: {1}", moduleId, nodePath.Join(" -> "));
+			nodePath.Clear();
+			nodePath.Add(node);
+			Debug.LogFormat("[Maze³ #{0}] Strike! Tried to walk {3} on node {1} ({4} button, rotated {2} degrees).", moduleId, node, orientation, strikeDirection[(idx + orientation / 90) % 4].ToLower(), strikeDirection[idx]);
+			hasStruck = true;
 		}
 	}
 
@@ -612,10 +494,11 @@ public class maze3Script : MonoBehaviour
 
 		MapNode n;
 		maze.TryGetValue(node, out n);
-
 		if(node == color * 9 + 4)
 		{
 			pins[node].GetComponentInChildren<Renderer>().material = colors[color];
+			colorblindIndicators[color].gameObject.SetActive(colorblindDetected);
+			colorblindIndicators[color].text = "RBYGMO"[color].ToString();
 			pins[node].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(color);
 		}
 		else
@@ -716,13 +599,13 @@ public class maze3Script : MonoBehaviour
 				}
 			}
 
-			Debug.Log(orientation);
+			//Debug.Log(orientation);
 
 			color = node / 9;
-			Debug.LogFormat("[Maze³ #{0}] Now at {1} face.", moduleId, GetColor(color));
+			//Debug.LogFormat("[Maze³ #{0}] Now at {1} face.", moduleId, GetColor(color));
 		}
 		
-		Debug.LogFormat("[Maze³ #{0}] Now at node {1}.", moduleId, node);
+		//Debug.LogFormat("[Maze³ #{0}] Now at node {1}.", moduleId, node);
 
 	}
 
@@ -732,8 +615,10 @@ public class maze3Script : MonoBehaviour
 		btns[1].AddInteractionPunch(.5f);
 		if(moduleSolved)
 			return;
-
-		if(node == solution[currentPress])
+		Debug.LogFormat("[Maze³ #{0}] Path taken before pressing the submit button: {1}", moduleId, nodePath.Join(" -> "));
+		nodePath.Clear();
+		nodePath.Add(node);
+		if (node == solution[currentPress])
 		{
 			Debug.LogFormat("[Maze³ #{0}] Successfuly submited {1} position.", moduleId, GetColor(node / 9));
 
@@ -746,17 +631,17 @@ public class maze3Script : MonoBehaviour
 			if(currentPress > 2)
 			{
 				Debug.LogFormat("[Maze³ #{0}] Module solved!", moduleId);
-				GetComponent<KMBombModule>().HandlePass();
+				modSelf.HandlePass();
 				moduleSolved = true;
 
 				StartCoroutine(ShowColoredLights());
 			}
 			else
-				Audio.PlaySoundAtTransform("bip", transform);
+				mAudio.PlaySoundAtTransform("bip", transform);
 		}
 		else
 		{
-			GetComponent<KMBombModule>().HandleStrike();
+			modSelf.HandleStrike();
 
 			if(node == (node / 9) * 9 + 4)
 				Debug.LogFormat("[Maze³ #{0}] Strike! Tried to submit on {1} position (Expected {2}).", moduleId, GetColor(node / 9), GetColor(solution[currentPress] / 9));
@@ -784,23 +669,6 @@ public class maze3Script : MonoBehaviour
 		}
 
 		return new Color(1.0f, 1.0f, 1.0f, 1.0f);
-	}
-
-	int GetOrientation(Vector3 orientator)
-	{
-		if(orientator.x > 0.9f)
-			return 90;
-
-		if(orientator.x < -0.9f)
-			return 270;	
-
-		if(orientator.z > 0.9f)
-			return 0;
-
-		if(orientator.z < -0.9f)
-			return 180;
-
-		return -1;
 	}
 
 	void CalcSolution()
@@ -850,15 +718,24 @@ public class maze3Script : MonoBehaviour
 			solution[2] = 40;
 		}
 
-		Debug.LogFormat("[Maze³ #{0}] Correct color sequence is: {1}, {2}, {3}.", moduleId, GetColor(solution[0]/9), GetColor(solution[1]/9), GetColor(solution[2]/9));
+		Debug.LogFormat("[Maze³ #{0}] Correct color sequence: {1}, {2}, {3}.", moduleId, GetColor(solution[0]/9), GetColor(solution[1]/9), GetColor(solution[2]/9));
 
 	}
 
 	IEnumerator ShowColoredLights()
 	{
+		foreach (TextMesh colorblindText in colorblindIndicators)
+        {
+			colorblindText.gameObject.SetActive(false);
+        }
+
+        for (int x = 0; x < btns.Length; x++)
+        {
+			btns[x].gameObject.SetActive(false);
+        }
 		for(int j = 0; j < 2; j++)
 		{
-			Audio.PlaySoundAtTransform("bip", transform);
+			mAudio.PlaySoundAtTransform("bip", transform);
 
 			for(int i = 0; i < pins.Length; i++)
 			{
@@ -895,26 +772,34 @@ public class maze3Script : MonoBehaviour
 			yield return new WaitForSeconds(0.5f);
 		}
 
-		Audio.PlaySoundAtTransform("bip", transform);
+		mAudio.PlaySoundAtTransform("bip", transform);
 
 		for(int i = 0; i < pins.Length; i++)
 		{
 			pins[i].GetComponentInChildren<Renderer>().material = colors[i / 9];
 			pins[i].transform.GetChild(0).gameObject.SetActive(true);
 			pins[i].transform.GetChild(0).GetComponentInChildren<Light>().color = GetColorVector(i / 9);
-			
 		}
-	}
+		Vector3 givenDirection = Rnd.onUnitSphere;
 
+		for (float x = 1; x >= 0; x -= Time.deltaTime)
+        {
+			float curDelay = Time.deltaTime;
+			cube.transform.localScale = new Vector3(x, x, x);
+            cube.transform.Rotate(360f * givenDirection * Time.deltaTime);
+			yield return new WaitForSeconds(curDelay);
+        }
+		cube.SetActive(false);
+	}
 	IEnumerator RotateCube(int xVal, int zVal)
 	{
 		rotating = true;
 
-		for(int i = 0; i < 18; i++)
+		for(int i = 0; i < 9; i++)
 		{
-			cube.transform.RotateAround(rotator.transform.position, rotator.transform.right, 5f * xVal);
-			cube.transform.RotateAround(rotator.transform.position, rotator.transform.forward, 5f * zVal);
-			yield return new WaitForSeconds(0.005f);
+			cube.transform.RotateAround(rotator.transform.position, rotator.transform.right, 10f * xVal);
+			cube.transform.RotateAround(rotator.transform.position, rotator.transform.forward, 10f * zVal);
+			yield return new WaitForSeconds(0f);
 		}
 
 		rotating = false;
@@ -922,22 +807,28 @@ public class maze3Script : MonoBehaviour
 
     //twitch plays
     #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"!{0} udlr [move in the specified directions in order; u = up, r = right, d = down, l = left] | !{0} enter [press the enter button] | !{0} reset | !{0} colorblind";
+		private readonly string TwitchHelpMessage = "Move in a specified direction with \"!{0} udlr\" (u = up, r = right, d = down, l = left). NESW directions can be used instead, \"move\" can be used to speed up the process. Press the submit button with \"!{0} enter/submit\" Restore the module to its initial face with \"!{0} reset\" You may use \"!{0} colorblind/colourblind\" to grab the center light LEDs in case of colorblindness";
     #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
     {
-        if (Regex.IsMatch(command, @"^\s*colorblind\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+		if (moduleSolved)
         {
-            foreach (var obj in colorblindIndicators)
+			yield return string.Format("sendtochaterror Are you trying to interact with the module when it's already solved. You might want to think again. (This is an anarchy command prevention message.)");
+			yield break;
+		}
+        if (Regex.IsMatch(command, @"^\s*colou?rblind\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        {
+			colorblindDetected = true;
+			foreach (var obj in colorblindIndicators)
                 obj.gameObject.SetActive(true);
             yield return null;
             yield break;
         }
-        if (Regex.IsMatch(command, @"^\s*enter\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(command, @"^\s*(enter|submit)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
         {
             yield return null;
-            yield return new[] { btns[4] };
+            yield return new[] { submitBtn };
             yield break;
         }
         if (Regex.IsMatch(command, @"^\s*reset\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
@@ -956,40 +847,89 @@ public class maze3Script : MonoBehaviour
             pins[node].GetComponentInChildren<Renderer>().material = lit;
             pins[node].transform.GetChild(0).gameObject.SetActive(true);
             Debug.LogFormat("[Maze³ #{0}] Reset performed! Node is now back to initial position and face!", moduleId);
-            yield break;
+			Debug.LogFormat("[Maze³ #{0}] Move directly back to node: {1}", moduleId, node);
+			yield break;
         }
-        char[] parameters = command.ToCharArray();
-        var buttonsToPress = new List<KMSelectable>();
-        foreach (char c in parameters)
+		bool moveFast = false;
+		if (Regex.IsMatch(command, @"^\s*m(ove)?\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+		{
+			command = command.Substring(command.ToLower().StartsWith("move") ? 4 : 1).Trim();
+			moveFast = true;
+		}
+		else if (Regex.IsMatch(command, @"^\s*walk?\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+		{
+			command = command.Substring(4).Trim();
+			moveFast = false;
+		}
+		string[] parameters = command.Split();
+        List<KMSelectable> buttonsToPress = new List<KMSelectable>();
+		List<int> tpDirections = new List<int>();
+		Dictionary<KMSelectable, char[]> intereptedDirections = new Dictionary<KMSelectable, char[]>()
+		{
+            { btns[0], new[] {'u', 'U', 'n', 'N'} },
+            { btns[3], new[] {'r', 'R', 'e', 'E'} },
+			{ btns[1], new[] {'d', 'D', 's', 'S'} },
+			{ btns[2], new[] {'l', 'L', 'w', 'W'} },
+		};
+		Dictionary<KMSelectable, int> loggingDirections = new Dictionary<KMSelectable, int> {
+			{ btns[0], 0 },
+			{ btns[3], 3 },
+			{ btns[1], 1 },
+			{ btns[2], 2 },
+
+		};
+        foreach (string b in parameters)
         {
-            if (c.Equals('u') || c.Equals('U'))
-            {
-                buttonsToPress.Add(btns[0]);
-            }
-            else if (c.Equals('r') || c.Equals('R'))
-            {
-                buttonsToPress.Add(btns[1]);
-            }
-            else if (c.Equals('d') || c.Equals('D'))
-            {
-                buttonsToPress.Add(btns[2]);
-            }
-            else if (c.Equals('l') || c.Equals('L'))
-            {
-                buttonsToPress.Add(btns[3]);
-            }
-            else
-            {
-                yield break;
-            }
+			foreach (char c in b)
+			{
+				bool successful = false;
+				foreach (KeyValuePair<KMSelectable,char[]> oneDirection in intereptedDirections)
+                {
+					if (oneDirection.Value.Contains(c))
+                    {
+						successful = true;
+						buttonsToPress.Add(oneDirection.Key);
+						tpDirections.Add(loggingDirections[oneDirection.Key]);
+						break;
+                    }
+                }
+				if (!successful)
+				{
+					yield return string.Format("sendtochaterror I do not know of a direction \"{0}\"", c);
+					yield break;
+				}
+			}
         }
-        yield return null;
-        foreach (KMSelectable km in buttonsToPress)
+        if (!buttonsToPress.Any())
         {
-            km.OnInteract();
+			yield return string.Format("sendtochaterror Your command gave no directions to move in. Abandoning command.");
+			yield break;
+		}
+		bool canPlayMusic = buttonsToPress.Count() >= 15 && !moveFast, isPlayingMusic = false;
+		hasStruck = false;
+		for (int i = 0; i < buttonsToPress.Count && !hasStruck; i++)
+        {
+            KMSelectable km = buttonsToPress[i];
+			if (!IsSafeToWalk(tpDirections[i]))
+            {
+				yield return string.Format("strikemessage attempting to walk {0} on press #{1} in the command that was provided!", new string[] { "up", "down", "left", "right" }[tpDirections[i]], i + 1);
+            }
+            yield return null;
+			if (canPlayMusic && !isPlayingMusic)
+            {
+				isPlayingMusic = true;
+				yield return "waiting music";
+			}
+			km.OnInteract();
             //To prevent moves before animation
-            while (rotating == true) yield return new WaitForSeconds(0.1f);
-            yield return new WaitForSeconds(0.3f);
+            do
+            {
+				yield return string.Format("trycancel Your command has been canceled after {0}/{1} presses.", i, buttonsToPress.Count);
+			}
+			while (rotating);
+            yield return new WaitForSeconds(moveFast ? 0.1f : 0.3f);
         }
-    }
+		if (isPlayingMusic)
+			yield return "end waiting music";
+	}
 }
